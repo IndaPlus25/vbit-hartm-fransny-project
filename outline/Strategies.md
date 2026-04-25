@@ -1,7 +1,5 @@
 Before reading this we urge you to read through the Specification where we go through all the concepts involved.
 
-1. General Strategy: Trace when the stock crosses above or below a chosen SMA, and combine that with market time and volume to decide whether to buy or sell.
-
 1. General Strategy: Track when price crosses a chosen SMA and combine that signal with market time and volume to filter out weak setups. The idea is that an SMA cross by itself produces a lot of false signals, so we only act on crosses that happen during high-volume periods when the move is more likely to follow through.
 
 ![SMA 100 cross](./images/sma100.png)
