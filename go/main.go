@@ -3,7 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
-
+	"sync"
+	"io"
+	"net/http"
+	"time"
+	"encoding/json"
+	"bytes"
+	
 	"github.com/segment/parquet-go"
 )
 
@@ -15,34 +21,95 @@ type Trade struct {
 	ProfitLoss float64 `parquet:"profit_loss"`
 }
 
+type MarketData struct {
+	Ticker string `json:"ticker"`
+	Price float64 `json:"price"`
+	SMA float64 `json:"sma"`
+}
+
 func main() {
-	signalChan := make(chan TradeSignal)
+	var mu sync.Mutex
+	var allTrades []Trade
+	var wg sync.WaitGroup
 
-	//fix go routines
-	go runStrategy()
-	go runStrategy()
-	go runStrategy()
+	tickerss := []string{} //NEED A SLICE WITH STOCKS
 
-	for signal := range signalChan {
-		sendToPython(signal)
+	httpClient := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	for _, ticker := range tickers {
+		wg.Add(1)
+
+		go func(t string) {
+			defer wg.Done()
+			stockTrades := simulateTicker(t, httpClient)
+			mu.Lock()
+			allTrades = append(allTrades, stockTrades...)
+			mu.Unlock()
+		}(ticker)
+	}
+	wg.Wait()
+
+	err := saveToParquet("result.parquet", allTrades)
+	if err != nil {
+		panic(err)
 	}
 }
 
-func sendToPython(s TradeSignal) {
-	//implement IPC logic: HTTP here
+func simulateTicker(ticker string) []Trade {
+	var tradesForTicker []Trade
 
-	fmt.Printf("Pushing to Python: [%s] %s %s\n", s.StrategyID, s.Action, s.Ticker)
-}
-
-func runStrategy(name string, ticker string, c chan TradeSignal) {
-	for {
-		//implement strategies
-
+	//read data
+	//loop over time
+	//MATH: calculate SMA RSI (parameters) to a point i
+	//IPC: build JSON and do https.Post to Python
+	//Register: What did python send back after strats??
+	
+	url := "http://localhost:8000/signal"
+	signal, err := sendToPython(client, url, aktuellData)
+	if err != nil {
+		fmt.Println("Fel vid anrop:", err)
 	}
+	
+
+	return tradesForTicker
 }
 
-// Help function
-// Convert CVS to parquet files (more effective to read)
+func sendToPython(client *http.Client, url string, data MarketData) (string, error) {
+	//rewrites data to JSON fomrat
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("Could not code JSON: %v", err)
+	}
+
+	//creates the "bridge" between Go and Python
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("Could not create request: %v", err)
+	}
+
+	//tells Python that the data is JSON format
+	req.Header.Set("Content-Type", "application/json")
+
+	//Sends TCP package over local host and goroutine blocks until python gives response
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("network error towards python %v", err)
+	}
+	defer resp.Body.Close()
+
+	//reades the Python respond, stores in the array bodyBytes and casts to a Go string  
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("Could not read python-post: %v", err)
+	}
+
+	//returns python analysis result after strategies has been implemented: BUY, SELL, HOLD
+	return string(bodyBytes), nil
+}
+
+// Help function that converts CVS to parquet files (more effective to read)
 func saveToParquet(filename string, trades []Trade) error {
 
 	file, err := os.Create(filename)
