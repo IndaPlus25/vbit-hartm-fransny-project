@@ -20,3 +20,16 @@ func AvgVolume(bars []Bar, period int) float64 {
     }
     return float64(sum) / float64(period)
 }
+//Lowest price durring a period
+func SwingLow(bars []Bar, lookback int) float64 {
+    if len(bars) < lookback {
+        lookback = len(bars)
+    }
+    lowest := bars[len(bars)-1].Low
+    for i := len(bars) - lookback; i < len(bars); i++ {
+        if bars[i].Low < lowest {
+            lowest = bars[i].Low //Update the lowest value 
+        }
+    }
+    return lowest
+}
