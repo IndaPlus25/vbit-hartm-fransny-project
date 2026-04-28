@@ -33,3 +33,16 @@ func SwingLow(bars []Bar, lookback int) float64 {
     }
     return lowest
 }
+//Highest price durring a period
+func SwingHigh(bars []Bar, lookback int) float64 {
+    if len(bars) < lookback {
+        lookback = len(bars)
+    }
+    highest := bars[len(bars)-1].High
+    for i := len(bars) - lookback; i < len(bars); i++ {
+        if bars[i].High > highest {
+            highest = bars[i].High
+        }
+    }
+    return highest
+}
