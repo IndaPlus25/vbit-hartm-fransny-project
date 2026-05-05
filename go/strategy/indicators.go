@@ -1,4 +1,6 @@
-//Function to track mean price over a period
+//FLYTTAT TILL ENGINE !!!!!!!!!!!!!
+
+`//Function to track mean price over a period
 func SMA(bars []Bar, period int) float64 {
     if len(bars) < period { //Can't calculate SMA without sufficient amount of bars
         return 0
@@ -45,4 +47,4 @@ func SwingHigh(bars []Bar, lookback int) float64 {
         }
     }
     return highest
-}
+}`
