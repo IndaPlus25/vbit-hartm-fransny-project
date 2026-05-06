@@ -1,69 +1,57 @@
 package engine
 
 import (
-	"net/http"
 	"trading-bot/types"
 )
 
-// calculateSMA summerar en slice av priser och dividerar med längden (n).
-func calculateSMA(prices []float64) float64 {
-	// Implementering
-	return 0.0
+// Function to track mean price over a period
+func SMA(bars []types.Bar, period int) float64 {
+	if len(bars) < period { //Can't calculate SMA without sufficient amount of bars
+		return 0
+	}
+	sum := 0.0
+	for i := len(bars) - period; i < len(bars); i++ { //Goes through all bars
+		sum += bars[i].Close //Add the closing price
+	}
+	return sum / float64(period) //Average price durring the period
 }
 
-// calculateAverageVolume summerar volymen för att identifiera om
-// den aktuella stapeln är över medel (Strategi 1).
-func calculateAverageVolume(volumes []int64) float64 {
-	// Implementering
-	return 0.0
+// Average volume durring a period
+func AvgVolume(bars []types.Bar, period int) float64 {
+	if len(bars) < period {
+		return 0
+	}
+	sum := int64(0)
+	for i := len(bars) - period; i < len(bars); i++ {
+		sum += bars[i].Volume
+	}
+	return float64(sum) / float64(period)
 }
 
-// calculateSwingHigh letar iterativt upp det högsta värdet i en array.
-func calculateSwingHigh(highs []float64) float64 {
-	// Implementering
-	return 0.0
+// Lowest price durring a period
+func SwingLow(bars []types.Bar, lookback int) float64 {
+	if len(bars) < lookback {
+		lookback = len(bars)
+	}
+	lowest := bars[len(bars)-1].Low
+	for i := len(bars) - lookback; i < len(bars); i++ {
+		if bars[i].Low < lowest {
+			lowest = bars[i].Low //Update the lowest value
+		}
+	}
+	return lowest
 }
 
-// calculateSwingLow letar iterativt upp det lägsta värdet i en array.
-func calculateSwingLow(lows []float64) float64 {
-	// Implementering
-	return 0.0
-}
-
-// isBullishFVG utvärderar prisgapet mellan det första och tredje ljuset.
-func isBullishFVG(c1, c2, c3 HistoricalTick) bool {
-	// Implementering: return c3.Low > c1.High
-	return false
-}
-
-// isBearishFVG utvärderar motsatsen för korta positioner.
-func isBearishFVG(c1, c2, c3 HistoricalTick) bool {
-	// Implementering: return c3.High < c1.Low
-	return false
-}
-
-// isBullish returnerar sant om stängningspriset är högre än öppningspriset.
-func isBullish(open float64, close float64) bool {
-	// Implementering: return close > open
-	return false
-}
-
-// isBearish returnerar sant om stängningspriset är lägre än öppningspriset.
-func isBearish(open float64, close float64) bool {
-	// Implementering: return close < open
-	return false
-}
-
-// isBearishLiquiditySweep verifierar om priset brutit zonen (High > zoneLevel)
-// men stängt under den (Close < zoneLevel).
-func isBearishLiquiditySweep(high float64, close float64, zoneLevel float64) bool {
-	// Implementering
-	return false
-}
-
-// aggregateTo15Min komprimerar 1-minutsdata till 15-minuters (OHLC).
-// Formellt: Open = p_1, High = max(p_1...p_15), Low = min(p_1...p_15), Close = p_15.
-func aggregateTo15Min(ticks []HistoricalTick) []HistoricalTick {
-	// Implementering
-	return nil
+// Highest price durring a period
+func SwingHigh(bars []types.Bar, lookback int) float64 {
+	if len(bars) < lookback {
+		lookback = len(bars)
+	}
+	highest := bars[len(bars)-1].High
+	for i := len(bars) - lookback; i < len(bars); i++ {
+		if bars[i].High > highest {
+			highest = bars[i].High
+		}
+	}
+	return highest
 }

@@ -1,33 +1,41 @@
 package data
 
 import (
-	"github.com/segmentio/parquet-go"
+	"io"
 	"os"
+	"sort"
 	"trading-bot/types"
+
+	"github.com/segmentio/parquet-go"
 )
 
-func LoadData(filename string) map[string][]HistoricalTick {
-	// Här ska Parquet-läsningen för indatan ske senare
-	return make(map[string][]HistoricalTick)
-}
-
-// Help function that converts CVS to parquet files (more effective to read)
-func SaveToParquet(filename string, trades []Trade) error {
-
-	file, err := os.Create(filename)
+func LoadData(filename string) ([]types.Bar, error) {
+	file, err := os.Open(filename)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer file.Close()
 
-	//Creates new writer only parsing variables of type Trade.
-	//writer has parquet instruction (schema-based format)
-	writer := parquet.NewGenericWriter[Trade](file)
-	defer writer.Close()
+	reader := parquet.NewGenericReader[types.Bar](file)
+	defer reader.Close()
 
-	_, err = writer.Write(trades)
-	if err != nil {
-		panic(err)
+	var allBars []types.Bar
+	buf := make([]types.Bar, 1000)
+
+	for {
+		n, err := reader.Read(buf)
+		allBars = append(allBars, buf[:n]...)
+
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
-	return nil
+	//sorts allBars with pdqsort to make sure order is correct in parquet file
+	sort.Slice(allBars, func(i, j int) bool {
+		return allBars[i].Timestamp < allBars[j].Timestamp
+	})
+	return allBars, nil
 }
