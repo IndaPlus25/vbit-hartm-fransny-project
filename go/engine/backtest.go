@@ -20,10 +20,6 @@ func simulateTicker(ticker string, data []types.Bar) []types.Trade {
 	//read data
 	//loop over time
 	//MATH functions
-	//IPC: build JSON and do https.Post to Python
-	//Register: What did python send back after strats??
-
-	//SMA math
 
 	return tradesForTicker
 }
