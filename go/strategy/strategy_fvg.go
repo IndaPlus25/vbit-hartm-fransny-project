@@ -9,12 +9,18 @@ import (
 type FVGStrategy struct {
 	SMAPeriod  int
 	RiskReward float64
+	nyZone     *time.Location
 }
 
 func NewFVGStrategy() *FVGStrategy {
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		panic(err)
+	}
 	return &FVGStrategy{
 		SMAPeriod:  100,
 		RiskReward: 1.5,
+		nyZone:     loc,
 	}
 }
 
@@ -66,8 +72,7 @@ func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 
 	//converts int64 to time.Time
 	barTime := time.Unix(bar.Timestamp, 0)
-	nyZone, _ := time.LoadLocation("America/New_York")
-	nyTime := barTime.In(nyZone)
+	nyTime := barTime.In(s.nyZone)
 
 	if !isEarlySession(nyTime) {
 		return types.Signal{Action: "HOLD", Reason: "outside early session"}

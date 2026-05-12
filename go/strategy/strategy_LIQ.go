@@ -10,19 +10,25 @@ import (
 // Swing-nivåer identifieras på den högre timeframe (HTF), entries triggas
 // på den lägre timeframe (LTF) som motorn matar in via OnBar.
 type LiquiditySweepStrategy struct {
-	HTFFactor     int     // hur många LTF-staplar = 1 HTF-stapel (t.ex. 3 för 5min→15min)
-	SwingLookback int     // antal HTF-staplar att leta swings i
-	SwingMinAge   int     // hoppa över de senaste N HTF-staplarna
+	HTFFactor     int // hur många LTF-staplar = 1 HTF-stapel (t.ex. 3 för 5min→15min)
+	SwingLookback int // antal HTF-staplar att leta swings i
+	SwingMinAge   int // hoppa över de senaste N HTF-staplarna
 	RiskReward    float64
+	nyZone        *time.Location
 }
 
 // First sweep strategy
 func NewLiquiditySweepStrategy() *LiquiditySweepStrategy {
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		panic(err)
+	}
 	return &LiquiditySweepStrategy{
 		HTFFactor:     3,  //5-min → 15-min
 		SwingLookback: 20, //20 HTF-staplar = 5 timmar av 15-min data
 		SwingMinAge:   2,  //2 HTF-staplar buffert
 		RiskReward:    2.0,
+		nyZone:        loc,
 	}
 }
 
@@ -42,8 +48,7 @@ func (s *LiquiditySweepStrategy) OnBar(bar types.Bar, history []types.Bar) types
 
 	//converts int64 to time.Time
 	barTime := time.Unix(bar.Timestamp, 0)
-	nyZone, _ := time.LoadLocation("America/New_York")
-	nyTime := barTime.In(nyZone)
+	nyTime := barTime.In(s.nyZone)
 
 	if !isEarlySession(nyTime) {
 		return types.Signal{Action: "HOLD", Reason: "outside early session"}
