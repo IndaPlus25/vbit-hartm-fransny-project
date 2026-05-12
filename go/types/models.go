@@ -1,10 +1,21 @@
 package types
 
 type Trade struct {
-	Timestamp  int64   `parquet:"timestamp"`
-	Symbol     string  `parquet:"symbol"`
-	Action     string  `parquet:"action"`
-	Price      float64 `parquet:"price"`
+	StrategyName string `parquet:"strategy_name"` //"FVG_Trend"
+	Symbol       string `parquet:"symbol"`        //"BTCUSDT"
+	Action       string `parquet:"action"`        // "BUY" "SELL"
+
+	// Time Stamps
+	EntryTime int64 `parquet:"entry_time"`
+	CloseTime int64 `parquet:"close_time"`
+
+	// Price levels
+	EntryPrice float64 `parquet:"entry_price"`
+	ClosePrice float64 `parquet:"close_price"`
+	StopLoss   float64 `parquet:"stop_loss"`
+	Target     float64 `parquet:"target"`
+
+	// Result
 	ProfitLoss float64 `parquet:"profit_loss"`
 }
 
