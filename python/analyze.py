@@ -14,8 +14,8 @@ def main():
         print("No trades found in the results file.")
         return
         
-    # Filter only closed trades which have the realized ProfitLoss
-    closed_trades = df[df['Action'].str.startswith('CLOSE')].copy()
+    # The Go engine now only exports completed trades, so all rows are valid closed trades.
+    closed_trades = df.copy()
     
     if closed_trades.empty:
         print("No closed trades found.")
