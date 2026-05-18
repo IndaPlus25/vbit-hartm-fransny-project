@@ -63,6 +63,8 @@ func RunBacktest(ticker string, data []types.Bar, strat Strategy) []types.Trade 
 					ProfitLoss: pnl,
 				})
 				inPosition = false
+
+				continue
 			}
 
 			// Simple logic: if we are in a position, we don't take new trades

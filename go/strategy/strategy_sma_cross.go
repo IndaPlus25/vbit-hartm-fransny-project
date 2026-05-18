@@ -13,16 +13,22 @@ type SMACrossStrategy struct {
 	VolumeThreshold float64
 	SwingLookback   int
 	RiskReward      float64
+	nyZone          *time.Location
 }
 
 // First SMA strategy
 func NewSMACrossStrategy() *SMACrossStrategy {
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		panic("Could not load time zone: " + err.Error())
+	}
 	return &SMACrossStrategy{
 		SMAPeriod:       100,
 		VolumePeriod:    20,
 		VolumeThreshold: 1.2,
 		SwingLookback:   10,
 		RiskReward:      2.0,
+		nyZone:          loc,
 	}
 }
 
@@ -39,8 +45,7 @@ func (s *SMACrossStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signa
 
 	//converts from int64 to time.Time
 	barTime := time.Unix(bar.Timestamp, 0)
-	nyZone, _ := time.LoadLocation("America/New_York")
-	nyTime := barTime.In(nyZone)
+	nyTime := barTime.In(s.nyZone)
 
 	if !isEarlySession(nyTime) {
 		return types.Signal{Action: "HOLD", Reason: "outside early session"}
