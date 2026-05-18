@@ -14,14 +14,14 @@ def main():
         print("No trades found in the results file.")
         return
         
-    # The Go engine now only exports completed trades, so all rows are valid closed trades.
+    # Go-motorn exporterar nu bara stängda trades, så alla rader är giltiga
     closed_trades = df.copy()
     
     if closed_trades.empty:
         print("No closed trades found.")
         return
         
-    # Analyze by Strategy
+    # Analysera per strategi
     print("=" * 55)
     print("MULTI-STRATEGY BACKTEST RESULTS")
     print("=" * 55)
@@ -35,7 +35,7 @@ def main():
         win_rate = (winning_trades / total_trades) * 100 if total_trades > 0 else 0
         total_pnl = strat_trades['ProfitLoss'].sum()
         
-        # Calculate Max Drawdown
+        # Räkna ut Max Drawdown
         strat_trades = strat_trades.sort_values('Timestamp')
         cumulative_pnl = strat_trades['ProfitLoss'].cumsum()
         peak = cumulative_pnl.expanding(min_periods=1).max()

@@ -15,7 +15,7 @@ def main():
     period = args.period
     interval = args.interval
 
-    # yfinance only allows 60d max for 5m interval
+    # Yahoo Finance tillåter max 60 dagar för 5-minutersintervall
     if interval == "5m" and period not in ["1d", "5d", "1mo", "60d"]:
         print("Note: yfinance limits 5m data to a maximum of 60 days. Adjusting period to '60d'.")
         period = "60d"
@@ -23,7 +23,7 @@ def main():
     print(f"Fetching historical stock data for: {', '.join(tickers)} using period: {period} and interval: {interval}...")
     
     try:
-        # Fetch data from Yahoo Finance grouped by ticker
+        # Hämta data grupperat per aktie
         data = yf.download(tickers, period=period, interval=interval, group_by='ticker')
         
         if data.empty:
@@ -35,26 +35,26 @@ def main():
         os.makedirs(target_dir, exist_ok=True)
         
         for ticker in tickers:
-            # Handle single ticker vs multiple tickers DataFrame structure
+            # Hantera formatet beroende på antal aktier
             if len(tickers) == 1:
                 ticker_data = data
             else:
                 ticker_data = data[ticker]
                 
-            # Drop NaN rows which sometimes occur at the start/end
+            # Rensa tomma rader
             ticker_data = ticker_data.dropna()
             
-            # Reset index so Datetime becomes a column
+            # Gör datum till en vanlig kolumn
             df = ticker_data.reset_index()
             datetime_col = df.columns[0]
             
-            # Create a new DataFrame with the exact columns expected by the Go engine
+            # Bygg dataframen för Go-motorn
             export_df = pd.DataFrame()
             
-            # Convert Datetime to Unix timestamp in seconds (int64)
+            # Unix-tidsstämpel (sekunder)
             export_df['timestamp'] = df[datetime_col].astype('int64') // 10**9 
             
-            # Map standard OHLCV columns and ensure types match Go (float64 and int64)
+            # Formatera OHLCV-kolumnerna
             export_df['open'] = df['Open'].astype('float64')
             export_df['high'] = df['High'].astype('float64')
             export_df['low'] = df['Low'].astype('float64')
@@ -64,7 +64,7 @@ def main():
             parquet_path = os.path.join(target_dir, f"{ticker}.parquet")
             
             try:
-                # Save as parquet using pyarrow
+                # Spara som parquet
                 export_df.to_parquet(parquet_path, engine='pyarrow', index=False)
                 print(f"Saved OHLCV data for {ticker} to: {parquet_path}")
             except ImportError:
