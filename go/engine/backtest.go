@@ -18,6 +18,9 @@ func RunBacktest(ticker string, data []types.Bar, strat Strategy) []types.Trade 
 	var positionAction string
 	var currentStopLoss float64
 	var currentTarget float64
+	
+	var capital float64 = 10000.0 // Starting capital per strategy
+	var shares float64
 
 	var history []types.Bar
 	maxHistory := 1000
@@ -54,10 +57,12 @@ func RunBacktest(ticker string, data []types.Bar, strat Strategy) []types.Trade 
 			if exited {
 				var pnl float64
 				if positionAction == "BUY" {
-					pnl = exitPrice - entryPrice
+					pnl = (exitPrice - entryPrice) * shares
 				} else {
-					pnl = entryPrice - exitPrice
+					pnl = (entryPrice - exitPrice) * shares
 				}
+				
+				capital += pnl // Update total capital with realized PnL
 
 				trades = append(trades, types.Trade{
 					Timestamp:  entryTime,
@@ -91,6 +96,14 @@ func RunBacktest(ticker string, data []types.Bar, strat Strategy) []types.Trade 
 			entryTime = bar.Timestamp
 			currentStopLoss = signal.StopLoss
 			currentTarget = signal.Target
+			
+			size := signal.Size
+			if size <= 0 {
+				size = 1.0 // Default to using 100% of capital if not specified
+			}
+			
+			investedCapital := capital * size
+			shares = investedCapital / entryPrice
 		}
 	}
 	return trades
