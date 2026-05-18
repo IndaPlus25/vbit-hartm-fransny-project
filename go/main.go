@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"trading-bot/data"
 	"trading-bot/engine"
@@ -51,14 +52,22 @@ func main() {
 				continue
 			}
 
+			var wg sync.WaitGroup
+			var mu sync.Mutex
+
 			// Run the backtest for each strategy
 			for _, strat := range strats {
+				wg.Add(1)
+				go func(s engine.Strategy) {
+					defer wg.Done()
+					trades := engine.RunBacktest(ticker, bars, s)
+					mu.Lock()
+					allTrades = append(allTrades, trades...)
+					mu.Unlock()
+				}(strat)
 				fmt.Printf("Running backtest for %s with strategy: %s\n", ticker, strat.Name())
-				trades := engine.RunBacktest(ticker, bars, strat)
-
-				// Save the results
-				allTrades = append(allTrades, trades...)
 			}
+			wg.Wait()
 		}
 	}
 
