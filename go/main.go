@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -70,6 +71,21 @@ func main() {
 		fmt.Printf("Could not save CSV: %v\n", err)
 	} else {
 		fmt.Println("Backtest complete! Results are available in go/output/results.csv")
+		
+		fmt.Println("Generating plot...")
+		
+		// Find the correct python command (python or py)
+		pythonCmd := "python"
+		if _, err := exec.LookPath("python"); err != nil {
+			pythonCmd = "py"
+		}
+
+		cmd := exec.Command(pythonCmd, filepath.Join("..", "python", "plots.py"))
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Error generating plot: %v\n", err)
+		}
 	}
 }
 
