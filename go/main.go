@@ -11,7 +11,7 @@ import (
 
 	"trading-bot/data"
 	"trading-bot/engine"
-	"trading-bot/strategy" // Import path is the folder name
+	strategies "trading-bot/strategy" // Import path is the folder name
 	"trading-bot/types"
 )
 
@@ -43,7 +43,7 @@ func main() {
 			filePath := filepath.Join(dataDir, file.Name())
 
 			fmt.Printf("Loading data for %s...\n", ticker)
-			
+
 			// Load the data
 			bars, err := data.LoadData(filePath)
 			if err != nil {
@@ -55,7 +55,7 @@ func main() {
 			for _, strat := range strats {
 				fmt.Printf("Running backtest for %s with strategy: %s\n", ticker, strat.Name())
 				trades := engine.RunBacktest(ticker, bars, strat)
-				
+
 				// Save the results
 				allTrades = append(allTrades, trades...)
 			}
@@ -65,15 +65,15 @@ func main() {
 	// 4. Output the results to a CSV file for analysis in Python
 	fmt.Printf("\nTotal number of generated trades: %d\n", len(allTrades))
 	fmt.Println("Saving results to CSV...")
-	
+
 	err = saveTradesToCSV(allTrades, filepath.Join("output", "results.csv"))
 	if err != nil {
 		fmt.Printf("Could not save CSV: %v\n", err)
 	} else {
 		fmt.Println("Backtest complete! Results are available in go/output/results.csv")
-		
+
 		fmt.Println("Generating plot...")
-		
+
 		// Find the correct python command (python or py)
 		pythonCmd := "python"
 		if _, err := exec.LookPath("python"); err != nil {
@@ -108,7 +108,17 @@ func saveTradesToCSV(trades []types.Trade, filename string) error {
 	defer writer.Flush()
 
 	// Write the headers - these must exactly match what the Python script expects
-	header := []string{"Timestamp", "Symbol", "Action", "Price", "ProfitLoss", "Strategy"}
+	header := []string{
+		"Timestamp",
+		"Symbol",
+		"Action",
+		"Price",
+		"ProfitLoss",
+		"CloseTime",
+		"EntryPrice",
+		"ClosePrice",
+		"Strategy",
+	}
 	if err := writer.Write(header); err != nil {
 		return err
 	}
@@ -119,6 +129,9 @@ func saveTradesToCSV(trades []types.Trade, filename string) error {
 		tsStr := strconv.FormatInt(t.Timestamp, 10)
 		priceStr := strconv.FormatFloat(t.Price, 'f', 2, 64)
 		pnlStr := strconv.FormatFloat(t.ProfitLoss, 'f', 2, 64)
+		closeTimeStr := strconv.FormatInt(t.CloseTime, 10)
+		entryPriceStr := strconv.FormatFloat(t.EntryPrice, 'f', 2, 64)
+		closePriceStr := strconv.FormatFloat(t.ClosePrice, 'f', 2, 64)
 
 		row := []string{
 			tsStr,
@@ -126,6 +139,9 @@ func saveTradesToCSV(trades []types.Trade, filename string) error {
 			t.Action,
 			priceStr,
 			pnlStr,
+			closeTimeStr,
+			entryPriceStr,
+			closePriceStr,
 			t.Strategy,
 		}
 
