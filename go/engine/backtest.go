@@ -28,7 +28,7 @@ func RunBacktest(ticker string, data []types.Bar, strat Strategy) []types.Trade 
 			history = history[1:]
 		}
 
-		// Check exits if we are in a position
+		// Kollar exits om vi är i position
 		if inPosition {
 			var exitPrice float64
 			var exited bool
@@ -75,13 +75,13 @@ func RunBacktest(ticker string, data []types.Bar, strat Strategy) []types.Trade 
 				continue
 			}
 
-			// Simple logic: if we are in a position, we don't take new trades
+			// Simple logic: Är vi i en position, gör inga nya trades
 			if inPosition {
 				continue
 			}
 		}
 
-		// Ask strategy for signal
+		// Frågar strategi efter signal
 		signal := strat.OnBar(bar, history)
 
 		if signal.Action == "BUY" || signal.Action == "SELL" {

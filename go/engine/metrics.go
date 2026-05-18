@@ -4,19 +4,19 @@ import (
 	"trading-bot/types"
 )
 
-// Function to track mean price over a period
+// Följer medelpriset över en period
 func SMA(bars []types.Bar, period int) float64 {
-	if len(bars) < period { //Can't calculate SMA without sufficient amount of bars
+	if len(bars) < period {
 		return 0
 	}
 	sum := 0.0
-	for i := len(bars) - period; i < len(bars); i++ { //Goes through all bars
-		sum += bars[i].Close //Add the closing price
+	for i := len(bars) - period; i < len(bars); i++ { //går igenom alla bars
+		sum += bars[i].Close //Adderar closing price
 	}
-	return sum / float64(period) //Average price durring the period
+	return sum / float64(period)
 }
 
-// Average volume durring a period
+// Medelvolym över period
 func AvgVolume(bars []types.Bar, period int) float64 {
 	if len(bars) < period {
 		return 0
@@ -28,7 +28,7 @@ func AvgVolume(bars []types.Bar, period int) float64 {
 	return float64(sum) / float64(period)
 }
 
-// Lowest price durring a period
+// Lägsta priset under period
 func SwingLow(bars []types.Bar, lookback int) float64 {
 	if len(bars) < lookback {
 		lookback = len(bars)
@@ -36,13 +36,13 @@ func SwingLow(bars []types.Bar, lookback int) float64 {
 	lowest := bars[len(bars)-1].Low
 	for i := len(bars) - lookback; i < len(bars); i++ {
 		if bars[i].Low < lowest {
-			lowest = bars[i].Low //Update the lowest value
+			lowest = bars[i].Low //Uppdatera minsta värdet
 		}
 	}
 	return lowest
 }
 
-// Highest price durring a period
+// Högsta priset under period
 func SwingHigh(bars []types.Bar, lookback int) float64 {
 	if len(bars) < lookback {
 		lookback = len(bars)

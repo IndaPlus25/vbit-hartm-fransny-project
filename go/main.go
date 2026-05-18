@@ -19,17 +19,17 @@ import (
 func main() {
 	fmt.Println("Starting the backtesting engine...")
 
-	// 1. Create a list to store all trades we will make
+	// Skapar lista över aktuella trades
 	var allTrades []types.Trade
 
-	// 2. Instantiate the strategies we want to test
+	// Instantiate the strategies we want to test
 	strats := []engine.Strategy{
 		strategies.NewSMACrossStrategy(),
 		strategies.NewFVGStrategy(),
 		strategies.NewLiquiditySweepStrategy(),
 	}
 
-	// 3. Find all downloaded .parquet files in the data directory
+	// Hitta alla nedladdade parquetfiler i data.go mappen
 	dataDir := filepath.Join("..", "data")
 	files, err := os.ReadDir(dataDir)
 	if err != nil {
@@ -38,14 +38,14 @@ func main() {
 	}
 
 	for _, file := range files {
-		// Check if the file is a .parquet file
+		// Kollar om filen är en .parquet fil
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".parquet") {
 			ticker := strings.TrimSuffix(file.Name(), ".parquet")
 			filePath := filepath.Join(dataDir, file.Name())
 
 			fmt.Printf("Loading data for %s...\n", ticker)
 
-			// Load the data
+			// Ladda data
 			bars, err := data.LoadData(filePath)
 			if err != nil {
 				fmt.Printf("Could not load data for %s: %v\n", ticker, err)
@@ -55,7 +55,7 @@ func main() {
 			var wg sync.WaitGroup
 			var mu sync.Mutex
 
-			// Run the backtest for each strategy
+			// Kör backtest
 			for _, strat := range strats {
 				wg.Add(1)
 				go func(s engine.Strategy) {
@@ -71,7 +71,7 @@ func main() {
 		}
 	}
 
-	// 4. Output the results to a CSV file for analysis in Python
+	// Output som CSV fil för att hantera i python
 	fmt.Printf("\nTotal number of generated trades: %d\n", len(allTrades))
 	fmt.Println("Saving results to CSV...")
 
@@ -83,7 +83,7 @@ func main() {
 
 		fmt.Println("Generating plot...")
 
-		// Find the correct python command (python or py)
+		// Hitta rätt python kommando (python eller py)
 		pythonCmd := "python"
 		if _, err := exec.LookPath("python"); err != nil {
 			pythonCmd = "py"
@@ -98,15 +98,15 @@ func main() {
 	}
 }
 
-// saveTradesToCSV takes a list of Trades and writes it to a CSV file
+// saveTradesToCSV tar en lista av trades och skriver om till en CSV fil.
 func saveTradesToCSV(trades []types.Trade, filename string) error {
-	// Ensure the output directory exists
+	// Säkerställer att en output mapp finns
 	err := os.MkdirAll(filepath.Dir(filename), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	// Create the file itself
+	// Skapa själva filen
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -116,7 +116,7 @@ func saveTradesToCSV(trades []types.Trade, filename string) error {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	// Write the headers - these must exactly match what the Python script expects
+	// Skriv rubrikerna som måste matcha i python
 	header := []string{
 		"Timestamp",
 		"Symbol",
@@ -132,9 +132,8 @@ func saveTradesToCSV(trades []types.Trade, filename string) error {
 		return err
 	}
 
-	// Write all data row by row
 	for _, t := range trades {
-		// Convert numbers to text (string)
+		// Gör nummer till text
 		tsStr := strconv.FormatInt(t.Timestamp, 10)
 		priceStr := strconv.FormatFloat(t.Price, 'f', 2, 64)
 		pnlStr := strconv.FormatFloat(t.ProfitLoss, 'f', 2, 64)

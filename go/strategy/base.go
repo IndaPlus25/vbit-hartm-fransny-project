@@ -1,6 +1,3 @@
-// types.go
-//All strategy files should use this package
-
 package strategies
 
 import (
