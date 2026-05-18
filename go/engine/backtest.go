@@ -14,14 +14,19 @@ func RunBacktest(ticker string, data []types.Bar, strat Strategy) []types.Trade 
 	var trades []types.Trade
 	var inPosition bool
 	var entryPrice float64
+	var entryTime int64
 	var positionAction string
 	var currentStopLoss float64
 	var currentTarget float64
 
 	var history []types.Bar
+	maxHistory := 1000
 
 	for _, bar := range data {
 		history = append(history, bar)
+		if len(history) > maxHistory {
+			history = history[1:]
+		}
 
 		// Check exits if we are in a position
 		if inPosition {
@@ -55,11 +60,14 @@ func RunBacktest(ticker string, data []types.Bar, strat Strategy) []types.Trade 
 				}
 
 				trades = append(trades, types.Trade{
-					Timestamp:  bar.Timestamp,
+					Timestamp:  entryTime,
+					CloseTime:  bar.Timestamp,
 					Symbol:     ticker,
 					Strategy:   strat.Name(),
-					Action:     "CLOSE_" + positionAction,
-					Price:      exitPrice,
+					Action:     positionAction,
+					Price:      entryPrice,
+					EntryPrice: entryPrice,
+					ClosePrice: exitPrice,
 					ProfitLoss: pnl,
 				})
 				inPosition = false
@@ -80,17 +88,9 @@ func RunBacktest(ticker string, data []types.Bar, strat Strategy) []types.Trade 
 			inPosition = true
 			positionAction = signal.Action
 			entryPrice = bar.Close
+			entryTime = bar.Timestamp
 			currentStopLoss = signal.StopLoss
 			currentTarget = signal.Target
-
-			trades = append(trades, types.Trade{
-				Timestamp:  bar.Timestamp,
-				Symbol:     ticker,
-				Strategy:   strat.Name(),
-				Action:     signal.Action,
-				Price:      entryPrice,
-				ProfitLoss: 0,
-			})
 		}
 	}
 	return trades
