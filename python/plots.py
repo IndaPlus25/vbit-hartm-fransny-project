@@ -1,7 +1,7 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+import plotly.graph_objects as go
 import os
+import webbrowser
 
 def main():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,10 +27,7 @@ def main():
     end_date = closed_trades['Datetime'].max().ceil('D')
     daily_idx = pd.date_range(start_date, end_date, freq='D')
     
-    # ----- STYLING -----
-    plt.style.use('dark_background')
-    fig, ax = plt.subplots(figsize=(14, 7), facecolor='#121212')
-    ax.set_facecolor('#121212')
+    fig = go.Figure()
     
     colors = ['#00E676', '#29B6F6', '#FFD700', '#AB47BC', '#FF7043']
     strategies = closed_trades['Strategy'].unique()
@@ -49,46 +46,69 @@ def main():
         
         color = colors[i % len(colors)]
         
-        # Plot strategy performance
-        ax.plot(strat_daily.index, strat_daily.values, 
-                label=f'Strategy: {strat}', color=color, linewidth=3, zorder=5)
-        
-        # Fill area under curve
-        ax.fill_between(strat_daily.index, strat_daily.values, 0, 
-                        where=(strat_daily.values >= 0), 
-                        color=color, alpha=0.1, interpolate=True, zorder=4)
-        ax.fill_between(strat_daily.index, strat_daily.values, 0, 
-                        where=(strat_daily.values < 0), 
-                        color=color, alpha=0.05, interpolate=True, zorder=4)
-        
-    # Formatting
-    ax.set_title('STRATEGY COMPARISON: Equity Curve (Daily)', fontsize=20, fontweight='bold', color='#FFFFFF', pad=20)
-    ax.set_xlabel('Date', fontsize=14, color='#B3B3B3', labelpad=10)
-    ax.set_ylabel('Cumulative Profit/Loss ($)', fontsize=14, color='#B3B3B3', labelpad=10)
+        # Add a trace for this strategy
+        fig.add_trace(go.Scatter(
+            x=strat_daily.index, 
+            y=strat_daily.values,
+            mode='lines',
+            name=f'{strat} ({len(strat_trades)} trades)',
+            line=dict(color=color, width=3),
+            fill='tozeroy',  # Fills the area to zero
+            fillcolor=f'rgba{tuple(int(color.lstrip("#")[i:i+2], 16) for i in (0, 2, 4)) + (0.1,)}' # Transparent fill
+        ))
+
+    # Update layout to be dark and stylish
+    fig.update_layout(
+        title={
+            'text': 'STRATEGY COMPARISON: Equity Curve (Daily)',
+            'y':0.95,
+            'x':0.5,
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'font': dict(size=24, color='#FFFFFF', family="Arial, sans-serif")
+        },
+        xaxis_title='Date',
+        yaxis_title='Cumulative Profit/Loss ($)',
+        template='plotly_dark',
+        plot_bgcolor='#121212',
+        paper_bgcolor='#121212',
+        font=dict(color='#B3B3B3'),
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='#2A2A2A',
+            gridwidth=1,
+            zeroline=False
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='#2A2A2A',
+            gridwidth=1,
+            zeroline=True,
+            zerolinecolor='#404040',
+            zerolinewidth=2
+        ),
+        hovermode='x unified',
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01,
+            bgcolor='rgba(30, 30, 30, 0.8)',
+            bordercolor='#333333',
+            borderwidth=1
+        )
+    )
     
-    # Grid and Spines
-    ax.grid(True, color='#2A2A2A', linestyle='--', linewidth=1, alpha=0.7)
-    for spine in ['top', 'right']:
-        ax.spines[spine].set_visible(False)
-    for spine in ['bottom', 'left']:
-        ax.spines[spine].set_color('#404040')
-        
-    ax.tick_params(colors='#B3B3B3', labelsize=11)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-    plt.xticks(rotation=45)
-    
-    leg = ax.legend(loc='upper left', frameon=True, facecolor='#1E1E1E', edgecolor='#333333', fontsize=12)
-    for text in leg.get_texts():
-        text.set_color('#E0E0E0')
-        
-    plt.tight_layout()
-    
+    # Save to HTML file
     out_dir = os.path.join(base_dir, "outline", "images")
     os.makedirs(out_dir, exist_ok=True)
-    out_file = os.path.join(out_dir, "equity_curve.png")
+    out_file = os.path.join(out_dir, "equity_curve_interactive.html")
     
-    plt.savefig(out_file, dpi=300, bbox_inches='tight', facecolor='#121212')
-    print(f"Plot saved successfully to: {out_file}")
+    fig.write_html(out_file)
+    print(f"Interactive plot saved to: {out_file}")
+    
+    # Open in default browser
+    webbrowser.open('file://' + os.path.abspath(out_file))
 
 if __name__ == "__main__":
     main()
