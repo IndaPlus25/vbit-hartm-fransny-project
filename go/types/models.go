@@ -6,6 +6,7 @@ type Trade struct {
 	Action     string  `parquet:"action"`
 	Price      float64 `parquet:"price"`
 	ProfitLoss float64 `parquet:"profit_loss"`
+	Strategy   string  `parquet:"strategy"`
 }
 
 type MarketData struct {
