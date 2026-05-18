@@ -6,7 +6,7 @@ import (
 	"sort"
 	"trading-bot/types"
 
-	"github.com/segmentio/parquet-go"
+	"github.com/parquet-go/parquet-go"
 )
 
 func LoadData(filename string) ([]types.Bar, error) {

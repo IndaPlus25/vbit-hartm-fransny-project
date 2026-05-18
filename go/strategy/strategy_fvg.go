@@ -9,12 +9,18 @@ import (
 type FVGStrategy struct {
 	SMAPeriod  int
 	RiskReward float64
+	nyZone     *time.Location
 }
 
 func NewFVGStrategy() *FVGStrategy {
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		panic("Could not load time zone: " + err.Error())
+	}
 	return &FVGStrategy{
 		SMAPeriod:  100,
 		RiskReward: 1.5,
+		nyZone:     loc,
 	}
 }
 
@@ -60,14 +66,14 @@ func detectFVG(bars []types.Bar) FVG {
 }
 
 func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
+
 	if len(history) < s.SMAPeriod+3 {
 		return types.Signal{Action: "HOLD", Reason: "insufficient data"}
 	}
 
 	//converts int64 to time.Time
 	barTime := time.Unix(bar.Timestamp, 0)
-	nyZone, _ := time.LoadLocation("America/New_York")
-	nyTime := barTime.In(nyZone)
+	nyTime := barTime.In(s.nyZone)
 
 	if !isEarlySession(nyTime) {
 		return types.Signal{Action: "HOLD", Reason: "outside early session"}
@@ -94,11 +100,11 @@ func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 		}
 		//Kolla efter bullish FVG
 		if fvg.IsBullish && isUptrend {
-			isRed   := currentBar.Close < currentBar.Open
+			isRed := currentBar.Close < currentBar.Open
 			isGreen := currentBar.Close > currentBar.Open
 
 			closeInGap := currentBar.Close >= fvg.Bottom && currentBar.Close <= fvg.Top
-			openInGap  := currentBar.Open  >= fvg.Bottom && currentBar.Open  <= fvg.Top
+			openInGap := currentBar.Open >= fvg.Bottom && currentBar.Open <= fvg.Top
 			closeBelowGap := currentBar.Close < fvg.Bottom
 
 			// Invalidation: röd bar som stänger under gapet → gapet är trasigt, gå vidare
@@ -107,9 +113,9 @@ func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 			}
 
 			// Två giltiga setup-varianter
-			validRedRetest   := isRed   && closeInGap   // röd som höll sig kvar i gapet
-			validGreenBounce := isGreen && openInGap    // grön som studsade ur gapet
-			//Kolla att någon av de stämmer 
+			validRedRetest := isRed && closeInGap    // röd som höll sig kvar i gapet
+			validGreenBounce := isGreen && openInGap // grön som studsade ur gapet
+			//Kolla att någon av de stämmer
 			if validRedRetest || validGreenBounce {
 				stopLoss := fvg.Bottom - 0.01
 				risk := currentBar.Close - stopLoss
@@ -126,11 +132,11 @@ func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 
 		//Kolla efter bearish FVG
 		if !fvg.IsBullish && !isUptrend {
-			isRed   := currentBar.Close < currentBar.Open
+			isRed := currentBar.Close < currentBar.Open
 			isGreen := currentBar.Close > currentBar.Open
 
 			closeInGap := currentBar.Close >= fvg.Bottom && currentBar.Close <= fvg.Top
-			openInGap  := currentBar.Open  >= fvg.Bottom && currentBar.Open  <= fvg.Top
+			openInGap := currentBar.Open >= fvg.Bottom && currentBar.Open <= fvg.Top
 			closeAboveGap := currentBar.Close > fvg.Top
 
 			// Invalidation: grön bar som stänger över gapet → gapet är trasigt
@@ -138,9 +144,9 @@ func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 				continue
 			}
 
-			validGreenRetest := isGreen && closeInGap   // grön som höll sig kvar i gapet
-			validRedRejection := isRed  && openInGap    // röd som studsade ner ur gapet
-			//Kolla att någon av de stämmer 
+			validGreenRetest := isGreen && closeInGap // grön som höll sig kvar i gapet
+			validRedRejection := isRed && openInGap   // röd som studsade ner ur gapet
+			//Kolla att någon av de stämmer
 			if validGreenRetest || validRedRejection {
 				stopLoss := fvg.Top + 0.01
 				risk := stopLoss - currentBar.Close
@@ -153,7 +159,7 @@ func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 					Reason:   "bearish FVG hold/rejection in downtrend",
 				}
 			}
-}
+		}
 	}
 	return types.Signal{Action: "HOLD", Reason: "no valid FVG setup"}
 }

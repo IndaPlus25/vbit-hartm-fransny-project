@@ -55,3 +55,44 @@ func SwingHigh(bars []types.Bar, lookback int) float64 {
 	}
 	return highest
 }
+
+// AggregateBars slår ihop flera små bars till färre stora bars
+func AggregateBars(bars []types.Bar, factor int) []types.Bar {
+	if factor <= 1 {
+		return bars
+	}
+	var aggregated []types.Bar
+
+	for i := 0; i < len(bars); i += factor {
+		end := i + factor
+		if end > len(bars) {
+			break // ignorera om vi inte har en komplett grupp på slutet
+		}
+
+		chunk := bars[i:end]
+		high := chunk[0].High
+		low := chunk[0].Low
+		vol := int64(0)
+
+		for _, b := range chunk {
+			if b.High > high {
+				high = b.High
+			}
+			if b.Low < low {
+				low = b.Low
+			}
+			vol += b.Volume
+		}
+
+		aggBar := types.Bar{
+			Timestamp: chunk[0].Timestamp,
+			Open:      chunk[0].Open,
+			High:      high,
+			Low:       low,
+			Close:     chunk[len(chunk)-1].Close,
+			Volume:    vol,
+		}
+		aggregated = append(aggregated, aggBar)
+	}
+	return aggregated
+}
