@@ -92,34 +92,68 @@ func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 		if !priceInGap {
 			continue
 		}
-		//Look for bullish
-		if fvg.IsBullish && isUptrend && currentBar.Close > currentBar.Open {
-			stopLoss := fvg.Bottom - 0.01
-			risk := currentBar.Close - stopLoss
-			target := currentBar.Close + (risk * s.RiskReward)
+		//Kolla efter bullish FVG
+		if fvg.IsBullish && isUptrend {
+			isRed   := currentBar.Close < currentBar.Open
+			isGreen := currentBar.Close > currentBar.Open
 
-			return types.Signal{
-				Action:   "BUY",
-				Size:     1.0,
-				StopLoss: stopLoss,
-				Target:   target,
-				Reason:   "bullish FVG retest in uptrend",
+			closeInGap := currentBar.Close >= fvg.Bottom && currentBar.Close <= fvg.Top
+			openInGap  := currentBar.Open  >= fvg.Bottom && currentBar.Open  <= fvg.Top
+			closeBelowGap := currentBar.Close < fvg.Bottom
+
+			// Invalidation: röd bar som stänger under gapet → gapet är trasigt, gå vidare
+			if isRed && closeBelowGap {
+				continue
+			}
+
+			// Två giltiga setup-varianter
+			validRedRetest   := isRed   && closeInGap   // röd som höll sig kvar i gapet
+			validGreenBounce := isGreen && openInGap    // grön som studsade ur gapet
+			//Kolla att någon av de stämmer 
+			if validRedRetest || validGreenBounce {
+				stopLoss := fvg.Bottom - 0.01
+				risk := currentBar.Close - stopLoss
+				target := currentBar.Close + (risk * s.RiskReward)
+				return types.Signal{
+					Action:   "BUY",
+					Size:     1.0,
+					StopLoss: stopLoss,
+					Target:   target,
+					Reason:   "bullish FVG hold/bounce in uptrend",
+				}
 			}
 		}
-		//Look for bearish
-		if !fvg.IsBullish && !isUptrend && currentBar.Close < currentBar.Open {
-			stopLoss := fvg.Top + 0.01
-			risk := stopLoss - currentBar.Close
-			target := currentBar.Close - (risk * s.RiskReward)
 
-			return types.Signal{
-				Action:   "SELL",
-				Size:     1.0,
-				StopLoss: stopLoss,
-				Target:   target,
-				Reason:   "bearish FVG retest in downtrend",
+		//Kolla efter bearish FVG
+		if !fvg.IsBullish && !isUptrend {
+			isRed   := currentBar.Close < currentBar.Open
+			isGreen := currentBar.Close > currentBar.Open
+
+			closeInGap := currentBar.Close >= fvg.Bottom && currentBar.Close <= fvg.Top
+			openInGap  := currentBar.Open  >= fvg.Bottom && currentBar.Open  <= fvg.Top
+			closeAboveGap := currentBar.Close > fvg.Top
+
+			// Invalidation: grön bar som stänger över gapet → gapet är trasigt
+			if isGreen && closeAboveGap {
+				continue
 			}
-		}
+
+			validGreenRetest := isGreen && closeInGap   // grön som höll sig kvar i gapet
+			validRedRejection := isRed  && openInGap    // röd som studsade ner ur gapet
+			//Kolla att någon av de stämmer 
+			if validGreenRetest || validRedRejection {
+				stopLoss := fvg.Top + 0.01
+				risk := stopLoss - currentBar.Close
+				target := currentBar.Close - (risk * s.RiskReward)
+				return types.Signal{
+					Action:   "SELL",
+					Size:     1.0,
+					StopLoss: stopLoss,
+					Target:   target,
+					Reason:   "bearish FVG hold/rejection in downtrend",
+				}
+			}
+}
 	}
 	return types.Signal{Action: "HOLD", Reason: "no valid FVG setup"}
 }
