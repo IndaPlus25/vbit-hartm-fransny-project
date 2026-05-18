@@ -28,7 +28,7 @@ func (s *FVGStrategy) Name() string {
 	return "FVG_Trend"
 }
 
-// Variables needed for fvg
+// Variablar som behövs för fvg
 type FVG struct {
 	Top       float64
 	Bottom    float64
@@ -43,7 +43,7 @@ func detectFVG(bars []types.Bar) FVG {
 
 	candle1 := bars[len(bars)-3]
 	candle3 := bars[len(bars)-1]
-	//Look for long
+	//Kolla efter long
 	if candle3.Low > candle1.High {
 		return FVG{
 			Top:       candle3.Low,
@@ -52,7 +52,7 @@ func detectFVG(bars []types.Bar) FVG {
 			Valid:     true,
 		}
 	}
-	//Look for short
+	//Kolla efter short 
 	if candle3.High < candle1.Low {
 		return FVG{
 			Top:       candle1.Low,
@@ -71,14 +71,14 @@ func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 		return types.Signal{Action: "HOLD", Reason: "insufficient data"}
 	}
 
-	//converts int64 to time.Time
+	//Konvertera int64 till time.Time
 	barTime := time.Unix(bar.Timestamp, 0)
 	nyTime := barTime.In(s.nyZone)
 
 	if !isEarlySession(nyTime) {
 		return types.Signal{Action: "HOLD", Reason: "outside early session"}
 	}
-	//Determine the trend
+	//Bestäm trenden
 	currentBar := history[len(history)-1]
 	sma := engine.SMA(history, s.SMAPeriod)
 	isUptrend := currentBar.Close > sma
@@ -87,12 +87,12 @@ func (s *FVGStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 		if i < 0 {
 			continue
 		}
-		//Look for fvg in the last 10 bars
+		//Kolla efter FVG senaste 10 bars
 		fvg := detectFVG(history[i : i+3])
 		if !fvg.Valid {
 			continue
 		}
-		//Is the price in the gap
+		//Är priset i gapet
 		priceInGap := currentBar.Low <= fvg.Top && currentBar.High >= fvg.Bottom
 
 		if !priceInGap {

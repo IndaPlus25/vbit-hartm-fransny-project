@@ -6,17 +6,16 @@ import (
 	"trading-bot/types"
 )
 
-// So that we can create different SMA strategies
 type SMACrossStrategy struct {
-	SMAPeriod       int
-	VolumePeriod    int
+	SMAPeriod       int //Hur lång period vi ska kolla efter SMA
+	VolumePeriod    int //HUr lång period vi ska kolla efter volym
 	VolumeThreshold float64
-	SwingLookback   int
-	RiskReward      float64
+	SwingLookback   int //Vart vi ska kolla efter swing low/high
+	RiskReward      float64 //Hur mycket vi vill riskera
 	nyZone          *time.Location
 }
 
-// First SMA strategy
+// Första SMA stretegi
 func NewSMACrossStrategy() *SMACrossStrategy {
 	loc, err := time.LoadLocation("America/New_York")
 	if err != nil {
@@ -32,39 +31,39 @@ func NewSMACrossStrategy() *SMACrossStrategy {
 	}
 }
 
-// Returns the name
+// Returnerar namnet
 func (s *SMACrossStrategy) Name() string {
 	return "SMA_Cross_Volume"
 }
 
-// Checks that we have enough data
+// Kollar att vi har tillräckligt med data
 func (s *SMACrossStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signal {
 	if len(history) < s.SMAPeriod+1 {
 		return types.Signal{Action: "HOLD", Reason: "insufficient data"}
-	} //Checks that the time is right
+	} 
 
-	//converts from int64 to time.Time
+	//Konverterar från int64 till time.Time
 	barTime := time.Unix(bar.Timestamp, 0)
 	nyTime := barTime.In(s.nyZone)
-
+	//Kollar att tiden stämmer 
 	if !isEarlySession(nyTime) {
 		return types.Signal{Action: "HOLD", Reason: "outside early session"}
 	}
 
-	//Check SMA on different bars to know when it crosses
+	//Kollar SMA under olika bars för att se när den korsat
 	currentSMA := engine.SMA(history, s.SMAPeriod)
 	prevBars := history[:len(history)-1]
 	prevSMA := engine.SMA(prevBars, s.SMAPeriod)
 
 	currentBar := history[len(history)-1]
 	prevBar := history[len(history)-2]
-	//Calculates average volume
+	//Räknar ut genomsnittsvolymen
 	avgVol := engine.AvgVolume(history[:len(history)-1], s.VolumePeriod)
 	if float64(currentBar.Volume) < avgVol*s.VolumeThreshold {
 		return types.Signal{Action: "HOLD", Reason: "volume too low"}
 	}
 
-	//Enter long trade
+	//Köp long
 	if prevBar.Close < prevSMA && currentBar.Close > currentSMA { //We have crossed up through the SMA
 		swingLow := engine.SwingLow(history, s.SwingLookback)
 		stopLoss := swingLow - 0.01 //StopLoss under swing low
@@ -80,7 +79,7 @@ func (s *SMACrossStrategy) OnBar(bar types.Bar, history []types.Bar) types.Signa
 		}
 	}
 
-	//Enter short trade, same as long
+	//Kort trade
 	if prevBar.Close > prevSMA && currentBar.Close < currentSMA {
 		swingHigh := engine.SwingHigh(history, s.SwingLookback)
 		stopLoss := swingHigh + 0.01

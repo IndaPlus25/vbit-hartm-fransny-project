@@ -17,7 +17,7 @@ type LiquiditySweepStrategy struct {
 	nyZone        *time.Location
 }
 
-// First sweep strategy
+// Liquiditysweep strategi
 func NewLiquiditySweepStrategy() *LiquiditySweepStrategy {
 	loc, err := time.LoadLocation("America/New_York")
 	if err != nil {
@@ -32,7 +32,7 @@ func NewLiquiditySweepStrategy() *LiquiditySweepStrategy {
 	}
 }
 
-// Returns the name
+// Returnerar namnet
 func (s *LiquiditySweepStrategy) Name() string {
 	return "Liquidity_Sweep_MTF"
 }
@@ -72,7 +72,7 @@ func (s *LiquiditySweepStrategy) OnBar(bar types.Bar, history []types.Bar) types
 	swingHigh := engine.SwingHigh(htfPrior, s.SwingLookback)
 	swingLow := engine.SwingLow(htfPrior, s.SwingLookback)
 
-	//Sweep above HTF swing high: prev LTF-stapel wickade över men stängde under
+	//Sweep över HTF swing high: prev LTF-stapel wickade över men stängde under
 	prevSweptHigh := prevBar.High > swingHigh && prevBar.Close < swingHigh
 	currentBearish := currentBar.Close < currentBar.Open
 
@@ -90,7 +90,7 @@ func (s *LiquiditySweepStrategy) OnBar(bar types.Bar, history []types.Bar) types
 		}
 	}
 
-	//Sweep below HTF swing low: prev LTF-stapel wickade under men stängde över
+	//Sweep under HTF swing low: prev LTF-stapel wickade under men stängde över
 	prevSweptLow := prevBar.Low < swingLow && prevBar.Close > swingLow
 	currentBullish := currentBar.Close > currentBar.Open
 
