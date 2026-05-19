@@ -1,2 +1,15 @@
-python/venv/
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Claude Code worktrees
+.claude/
+
+# Backtest output
 go/output/

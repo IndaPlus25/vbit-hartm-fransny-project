@@ -83,17 +83,54 @@ func main() {
 
 		fmt.Println("Generating plot...")
 
-		// Hitta rätt python kommando (python eller py)
-		pythonCmd := "python"
-		if _, err := exec.LookPath("python"); err != nil {
-			pythonCmd = "py"
+		// 1. Hitta rätt python-kommando: föredra projektets .venv om den finns
+		// (söker uppåt i katalogträdet upp till 5 nivåer), annars python3/python/py i PATH.
+		pythonCmd := ""
+		venvSubpaths := []string{
+			filepath.Join(".venv", "bin", "python3"),
+			filepath.Join(".venv", "bin", "python"),
+			filepath.Join(".venv", "Scripts", "python.exe"),
+		}
+		base := ".."
+		for i := 0; i < 5 && pythonCmd == ""; i++ {
+			for _, sub := range venvSubpaths {
+				candidate := filepath.Join(base, sub)
+				if _, err := os.Stat(candidate); err == nil {
+					pythonCmd = candidate
+					break
+				}
+			}
+			base = filepath.Join(base, "..")
+		}
+		if pythonCmd == "" {
+			for _, candidate := range []string{"python3", "python", "py"} {
+				if _, err := exec.LookPath(candidate); err == nil {
+					pythonCmd = candidate
+					break
+				}
+			}
+		}
+		if pythonCmd == "" {
+			fmt.Println("Error: hittade ingen python (kollade .venv uppåt i trädet och PATH)")
+			return
 		}
 
-		cmd := exec.Command(pythonCmd, filepath.Join("..", "python", "plots.py"))
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("Error generating plot: %v\n", err)
+		// 2. Kör det första skriptet: plot_growth.py
+		fmt.Println("-> Running plot_growth.py...")
+		cmdGrowth := exec.Command(pythonCmd, filepath.Join("..", "python", "plot_growth.py"))
+		cmdGrowth.Stdout = os.Stdout
+		cmdGrowth.Stderr = os.Stderr
+		if err := cmdGrowth.Run(); err != nil {
+			fmt.Printf("Error generating growth plot: %v\n", err)
+		}
+
+		// 3. Kör det andra skriptet: plot_trades.pya
+		fmt.Println("-> Running plot_trades.py...")
+		cmdTrades := exec.Command(pythonCmd, filepath.Join("..", "python", "plot_trades.py"))
+		cmdTrades.Stdout = os.Stdout
+		cmdTrades.Stderr = os.Stderr
+		if err := cmdTrades.Run(); err != nil {
+			fmt.Printf("Error generating trades plot: %v\n", err)
 		}
 	}
 }
@@ -160,3 +197,4 @@ func saveTradesToCSV(trades []types.Trade, filename string) error {
 
 	return nil
 }
+

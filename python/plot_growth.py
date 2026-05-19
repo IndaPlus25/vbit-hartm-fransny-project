@@ -1,7 +1,25 @@
 import pandas as pd
 import plotly.graph_objects as go
 import os
+import platform
+import shutil
+import subprocess
 import webbrowser
+
+
+def open_in_browser(path: str) -> None:
+    """Öppna en lokal fil i standard-webbläsaren. Hanterar WSL (där `gio open`
+    saknar file-associations) genom att gå via explorer.exe."""
+    abs_path = os.path.abspath(path)
+    is_wsl = "microsoft" in platform.uname().release.lower()
+    if is_wsl and shutil.which("explorer.exe"):
+        try:
+            win_path = subprocess.check_output(["wslpath", "-w", abs_path]).decode().strip()
+            subprocess.Popen(["explorer.exe", win_path])
+            return
+        except Exception:
+            pass
+    webbrowser.open("file://" + abs_path)
 
 def main():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -110,8 +128,8 @@ def main():
     fig.write_html(out_file)
     print(f"Interactive plot saved to: {out_file}")
     
-    # Öppna i standard-webbläsaren
-    webbrowser.open('file://' + os.path.abspath(out_file))
+    # Öppna i standard-webbläsaren (WSL-säkert)
+    open_in_browser(out_file)
 
 if __name__ == "__main__":
     main()
